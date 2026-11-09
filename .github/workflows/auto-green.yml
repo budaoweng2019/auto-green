@@ -1,0 +1,35 @@
+name: Keep Green
+
+on:
+  schedule:
+    # 每天 UTC 时间 0:50, 4:50, 8:50... 运行 (对应北京时间 8:50, 12:50...)
+    - cron: "50 0/4 * * *"
+  workflow_dispatch: # 允许手动点击运行，方便测试
+
+permissions:
+  contents: write
+
+jobs:
+  autogreen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Configure Git
+        run: |
+          # 这里引用我们在第二步设置的“秘密”，而不是写死邮箱
+          git config --local user.email "${{ secrets.GIT_EMAIL }}"
+          git config --local user.name "${{ secrets.GIT_USERNAME }}"
+
+      - name: Create activity
+        run: |
+          # 创建一个文件并写入当前时间，确保有实际内容变更
+          echo "Last updated: $(date -u)" > .keep-alive
+          git add .keep-alive
+          
+          # 提交消息加上 [skip ci]，防止无限循环触发
+          git commit -m "chore: auto keep alive [skip ci]"
+          
+          # 推送代码
+          git push
